@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>온도 측정 시뮬레이션</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Do+Hyeon&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FBF6EC;
+    --ink:#2B2A28;
+    --ice-blue:#2E7DAF;
+    --ice-blue-light:#DCEEF8;
+    --heat-coral:#E8622C;
+    --heat-coral-light:#FBE3D6;
+    --teal:#1E9E93;
+    --yellow:#F5A623;
+    --line:#E4DCC9;
+    --white:#FFFFFF;
+    --stand:#8b8477;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    background:var(--cream);
+    background-image: radial-gradient(circle at 1px 1px, rgba(0,0,0,0.045) 1px, transparent 0);
+    background-size: 18px 18px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+  }
+  .app{ width:100%; max-width:460px; padding:14px 14px 40px; }
+
+  .masthead{ display:flex; align-items:center; gap:10px; padding:6px 4px 14px; }
+  .masthead .num{ font-family:'Do Hyeon', sans-serif; font-size:34px; color:var(--yellow); -webkit-text-stroke:1.5px var(--ink); line-height:1; }
+  .masthead h1{ font-family:'Jua', sans-serif; font-size:20px; font-weight:400; margin:0; line-height:1.3; }
+  .masthead p{ margin:2px 0 0; font-size:12px; color:#8a8477; }
+
+  .section-label{ display:flex; align-items:center; gap:8px; margin:22px 0 10px; }
+  .section-label .badge{
+    width:24px; height:24px; border-radius:50%;
+    background:var(--ink); color:var(--white);
+    font-size:12px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .section-label h2{ font-family:'Jua', sans-serif; font-size:16px; margin:0; font-weight:400; }
+
+  .card{
+    background:var(--white);
+    border:2px solid var(--line);
+    border-radius:22px;
+    padding:18px 16px 16px;
+    margin-bottom:14px;
+    box-shadow: 0 3px 0 var(--line);
+  }
+
+  /* text lists (준비물 / 방법) */
+  .plain-text{ font-size:13px; line-height:1.75; color:var(--ink); margin:0; }
+  .plain-text b{ color:var(--ink); }
+  .method-list{ margin:0; padding-left:20px; }
+  .method-list li{ font-size:13px; line-height:1.7; color:var(--ink); margin-bottom:6px; }
+  .method-list li::marker{ color:var(--teal); font-weight:700; }
+
+  /* tabs */
+  .tabs{ display:flex; gap:8px; margin-bottom:6px; }
+  .tab{
+    flex:1; border:2px solid var(--line); background:var(--white); border-radius:14px;
+    padding:10px 6px; text-align:center; font-size:13.5px; font-weight:700; color:#9a9384;
+    cursor:pointer; transition:.18s ease;
+  }
+  .tab .t-em{ display:block; font-size:11px; font-weight:500; margin-top:2px; opacity:.85;}
+  .tab.active[data-exp="ice"]{ background:var(--ice-blue-light); border-color:var(--ice-blue); color:var(--ice-blue); }
+  .tab.active[data-exp="boil"]{ background:var(--heat-coral-light); border-color:var(--heat-coral); color:var(--heat-coral); }
+
+  .exp-title{ font-family:'Jua', sans-serif; font-weight:400; font-size:17px; margin:0 0 14px; display:flex; align-items:center; gap:6px; }
+  .exp-title .dot{ width:9px;height:9px;border-radius:50%; display:inline-block; }
+  #tab-ice .exp-title .dot{ background:var(--ice-blue); }
+  #tab-boil .exp-title .dot{ background:var(--heat-coral); }
+
+  .stage{ display:flex; align-items:flex-end; justify-content:center; padding:6px 0 4px; }
+  .beaker-svg{ width:190px; height:200px; }
+
+  .readout{ text-align:center; margin-top:6px; }
+  .readout .label{ font-size:12px; color:#a29c8d; font-weight:600; }
+  .readout .value{ font-family:'Do Hyeon', sans-serif; font-size:42px; line-height:1.15; color:var(--ink); letter-spacing:0.5px; }
+  .readout .value .unit{ font-size:20px; margin-left:2px; color:#a29c8d;}
+  .readout .time{ font-size:13px; font-weight:700; color:var(--white); background:var(--ink); display:inline-block; padding:3px 12px; border-radius:999px; margin-top:6px; }
+
+  .controls{ display:flex; gap:8px; margin-top:16px; }
+  button{ font-family:inherit; border:none; cursor:pointer; }
+  .btn-main{ flex:1; padding:14px 10px; border-radius:14px; font-size:15.5px; font-weight:700; color:var(--white); transition:.15s ease; box-shadow:0 3px 0 rgba(0,0,0,.18); }
+  .btn-main:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.18);}
+  #tab-ice .btn-main{ background:var(--ice-blue); }
+  #tab-boil .btn-main{ background:var(--heat-coral); }
+  .btn-main:disabled{ background:#D8D2C4; box-shadow:none; color:#a29c8d; cursor:not-allowed;}
+  .btn-reset{ width:46px; border-radius:14px; background:var(--white); border:2px solid var(--line); font-size:17px; color:#a29c8d; }
+  .btn-reset:active{ transform:translateY(1px); }
+
+  .log-card{ background:var(--white); border:2px solid var(--line); border-radius:22px; padding:14px 16px 16px; }
+  .log-title{ font-size:13px; font-weight:700; color:#8a8477; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+  .log-grid{ display:grid; grid-template-columns: repeat(5, 1fr); gap:6px; }
+  .log-cell{ border:1.5px solid var(--line); border-radius:10px; padding:6px 2px; text-align:center; background:#FBF6EC; }
+  .log-cell .lt{ font-size:10px; color:#a29c8d; }
+  .log-cell .lv{ font-size:13.5px; font-weight:700; margin-top:2px; min-height:16px; }
+  .log-cell.filled{ background:var(--white); }
+  .log-cell.flash{ animation: flashcell .5s ease; }
+  @keyframes flashcell{ 0%{ transform:scale(1.18); } 100%{ transform:scale(1); } }
+  #tab-ice .log-cell.filled .lv{ color:var(--ice-blue); }
+  #tab-boil .log-cell.filled .lv{ color:var(--heat-coral); }
+
+  .hint{ text-align:center; font-size:12px; color:#a29c8d; margin-top:12px; line-height:1.6; }
+  .apparatus-label{ paint-order: stroke; stroke:#fff; stroke-width:3px; stroke-linejoin:round; }
+  .steam{ position:absolute; opacity:0; transition:opacity .5s; }
+
+  @media (max-width:360px){
+    .beaker-svg{ width:165px; height:175px; }
+    .readout .value{ font-size:36px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="masthead">
+    <div class="num">1</div>
+    <div>
+      <h1>열에너지를 흡수하는 상태 변화</h1>
+      <p>준비물·방법 확인 → 온도 측정하기</p>
+    </div>
+  </div>
+
+  <!-- 준비물 -->
+  <div class="section-label"><span class="badge">1</span><h2>실험 준비물</h2></div>
+  <div class="card">
+    <p class="plain-text">얼음, 찬물, 증류수, 끓임쪽, 100 mL 삼각 플라스크 2개, 500 mL 비커, 디지털 온도계, 스탠드, 고정 집게, 가열 장치, 초시계, 실험복, 보안경, 실험용 장갑, 면장갑</p>
+  </div>
+
+  <!-- 방법 -->
+  <div class="section-label"><span class="badge">2</span><h2>실험 방법</h2></div>
+  <div class="card">
+    <p class="plain-text" style="margin-bottom:8px; font-weight:700;">실험 1. 얼음이 녹고 물이 될 때</p>
+    <ol class="method-list" style="margin-bottom:14px;">
+      <li>얼음이 든 삼각 플라스크를 찬물이 담긴 비커에 넣고 그림과 같이 장치한다.</li>
+      <li>1분 간격으로 온도를 측정하고, 얼음이 녹기 시작하면 5분 정도 더 온도를 측정한다.</li>
+    </ol>
+    <p class="plain-text" style="margin-bottom:8px; font-weight:700;">실험 2. 물이 끓을 때</p>
+    <ol class="method-list">
+      <li>다른 삼각 플라스크에 증류수를 1/3 정도 담고, 끓임쪽을 2~3개 넣은 후 그림과 같이 장치한다.</li>
+      <li>가열 장치로 가열하면서 1분 간격으로 물의 온도를 측정하고, 물이 끓기 시작하면 5분 정도 더 온도를 측정한다.</li>
+    </ol>
+  </div>
+
+  <!-- 온도 측정 -->
+  <div class="section-label"><span class="badge">3</span><h2>온도 측정하기</h2></div>
+
+  <div class="tabs">
+    <div class="tab active" data-exp="ice" onclick="switchExp('ice')">🧊 실험 1<span class="t-em">얼음이 녹고 물의 온도</span></div>
+    <div class="tab" data-exp="boil" onclick="switchExp('boil')">🔥 실험 2<span class="t-em">물이 끓을 때 온도</span></div>
+  </div>
+
+  <!-- ICE -->
+  <div id="tab-ice">
+    <div class="card">
+      <p class="exp-title"><span class="dot"></span>얼음이 녹고 물이 될 때 온도 측정하기</p>
+      <div class="stage">
+        <svg class="beaker-svg" viewBox="0 0 190 200">
+          <!-- 바깥 비커(좁게): 찬물이 담긴 컵 -->
+          <path d="M38 58 L38 172 Q38 180 46 180 L134 180 Q142 180 142 172 L142 58"
+                fill="var(--ice-blue-light)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M34 58 L146 58" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
+
+          <!-- 안쪽 삼각 플라스크(넓게): 얼음이 든 플라스크가 찬물 속에 담겨 있음 -->
+          <clipPath id="iceFlaskClip">
+            <path d="M77 22 L77 52 L50 142 Q44 154 62 154 L108 154 Q126 154 120 142 L93 52 L93 22"/>
+          </clipPath>
+          <path d="M77 22 L77 52 L50 142 Q44 154 62 154 L108 154 Q126 154 120 142 L93 52 L93 22"
+                fill="var(--white)" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M73 22 L97 22" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/>
+          <rect id="ice-water" x="42" y="148" width="86" height="6" fill="#AEDBF0" clip-path="url(#iceFlaskClip)"/>
+          <g id="ice-cube" transform="translate(85,132)">
+            <rect x="-17" y="-17" width="34" height="34" rx="5" fill="#EAF6FC" stroke="var(--ice-blue)" stroke-width="2"/>
+            <line x1="-17" y1="-6" x2="17" y2="-6" stroke="var(--ice-blue)" stroke-width="1.2" opacity="0.5"/>
+            <line x1="-6" y1="-17" x2="-6" y2="17" stroke="var(--ice-blue)" stroke-width="1.2" opacity="0.5"/>
+          </g>
+
+          <!-- 스탠드 + 고정 집게 + 디지털 온도계 (집게가 삼각플라스크 입구 위쪽에서 온도계를 붙잡고 있음) -->
+          <rect x="155" y="188" width="34" height="7" rx="2" fill="var(--ink)"/>
+          <rect x="168" y="4" width="6" height="186" rx="2" fill="var(--stand)"/>
+          <rect x="84" y="10" width="84" height="5" rx="2" fill="var(--stand)"/>
+          <rect x="78" y="6" width="14" height="14" rx="3" fill="var(--stand)"/>
+          <line x1="85" y1="19" x2="85" y2="112" stroke="#6b6558" stroke-width="2.5" stroke-linecap="round"/>
+          <rect x="98" y="4" width="50" height="24" rx="6" fill="var(--white)" stroke="var(--ink)" stroke-width="2"/>
+          <rect x="103" y="9" width="40" height="12" rx="2" fill="#EFF7F5"/>
+          <line x1="98" y1="14" x2="88" y2="12" stroke="var(--ink)" stroke-width="2"/>
+          <text id="ice-digital-num" x="123" y="19" font-family="'Do Hyeon',sans-serif" font-size="11" fill="var(--ice-blue)" text-anchor="middle">0.0</text>
+          <!-- 라벨: 사진처럼 부위 이름 표시 -->
+          <g font-family="-apple-system,'Apple SD Gothic Neo',sans-serif" font-size="9.5" fill="var(--ink)" class="apparatus-label">
+            <line x1="34" y1="20" x2="97" y2="14" stroke="#9a9384" stroke-width="1"/>
+            <text x="2" y="20">디지털 온도계</text>
+            <line x1="20" y1="100" x2="63" y2="128" stroke="#9a9384" stroke-width="1"/>
+            <text x="2" y="99">얼음</text>
+            <line x1="18" y1="163" x2="45" y2="172" stroke="#9a9384" stroke-width="1"/>
+            <text x="2" y="165">찬물</text>
+          </g>
+        </svg>
+      </div>
+      <div class="readout">
+        <div class="label">온도계 측정값</div>
+        <div class="value"><span id="ice-value">-</span><span class="unit">℃</span></div>
+        <div class="time" id="ice-time">측정 전</div>
+      </div>
+      <div class="controls">
+        <button class="btn-main" id="ice-btn" onclick="togglePlay('ice')">▶ 실험 시작</button>
+        <button class="btn-reset" onclick="resetExp('ice')" aria-label="다시 시작">↺</button>
+      </div>
+    </div>
+    <div class="log-card">
+      <div class="log-title"><span>측정 기록 (분)</span><span id="ice-progress">0 / 10</span></div>
+      <div class="log-grid" id="ice-log"></div>
+    </div>
+    <p class="hint">실험이 자동으로 진행되며 온도가 계속 변해요.<br>1분이 지날 때마다 표시된 값을 교과서 표에 옮겨 적어보자. 필요하면 일시정지할 수 있어요.</p>
+  </div>
+
+  <!-- BOIL -->
+  <div id="tab-boil" style="display:none;">
+    <div class="card">
+      <p class="exp-title"><span class="dot"></span>물이 끓을 때 온도 측정하기</p>
+      <div class="stage">
+        <svg class="beaker-svg" viewBox="0 0 190 200">
+          <g id="boil-steam" class="steam">
+            <path d="M65 34 Q59 22 67 14" stroke="#cfd6d8" stroke-width="4" fill="none" stroke-linecap="round"/>
+            <path d="M80 34 Q74 20 82 10" stroke="#cfd6d8" stroke-width="4" fill="none" stroke-linecap="round"/>
+            <path d="M95 34 Q89 22 97 14" stroke="#cfd6d8" stroke-width="4" fill="none" stroke-linecap="round"/>
+          </g>
+          <path d="M69 26 L69 63 L35 153 Q29 168 47 168 L113 168 Q131 168 125 153 L91 63 L91 26"
+                fill="var(--heat-coral-light)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M63 26 L97 26" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
+          <clipPath id="flaskClip">
+            <path d="M69 26 L69 63 L35 153 Q29 168 47 168 L113 168 Q131 168 125 153 L91 63 L91 26"/>
+          </clipPath>
+          <rect id="boil-water" x="25" y="98" width="112" height="75" fill="#F6B999" clip-path="url(#flaskClip)"/>
+          <g id="bubbles" clip-path="url(#flaskClip)"></g>
+          <!-- 가열 장치 (본체 + 발열판 + 조작부) -->
+          <rect x="14" y="171" width="132" height="20" rx="5" fill="#3a3835" stroke="var(--ink)" stroke-width="2"/>
+          <rect x="14" y="171" width="132" height="6" rx="3" fill="#4d4a44"/>
+          <ellipse cx="78" cy="171" rx="56" ry="6" fill="#232220"/>
+          <ellipse id="heater-glow" cx="78" cy="171" rx="50" ry="4.5" fill="#FF7A3D" opacity="0"/>
+          <circle cx="128" cy="182" r="6" fill="#cfcac0" stroke="var(--ink)" stroke-width="1.5"/>
+          <line x1="128" y1="182" x2="131" y2="178" stroke="var(--ink)" stroke-width="1.5" stroke-linecap="round"/>
+          <circle id="heater-led" cx="110" cy="182" r="2.2" fill="#c9c2b3"/>
+          <rect x="155" y="188" width="34" height="7" rx="2" fill="var(--ink)"/>
+          <rect x="168" y="4" width="6" height="186" rx="2" fill="var(--stand)"/>
+          <rect x="88" y="14" width="80" height="5" rx="2" fill="var(--stand)"/>
+          <rect x="82" y="10" width="14" height="14" rx="3" fill="var(--stand)"/>
+          <line x1="89" y1="23" x2="89" y2="118" stroke="#6b6558" stroke-width="2.5" stroke-linecap="round"/>
+          <rect x="98" y="4" width="50" height="24" rx="6" fill="var(--white)" stroke="var(--ink)" stroke-width="2"/>
+          <rect x="103" y="9" width="40" height="12" rx="2" fill="#FBE9E0"/>
+          <line x1="98" y1="16" x2="92" y2="15" stroke="var(--ink)" stroke-width="2"/>
+          <text id="boil-digital-num" x="123" y="19" font-family="'Do Hyeon',sans-serif" font-size="11" fill="var(--heat-coral)" text-anchor="middle">0.0</text>
+          <!-- 라벨: 사진처럼 부위 이름 표시 -->
+          <g font-family="-apple-system,'Apple SD Gothic Neo',sans-serif" font-size="9.5" fill="var(--ink)" class="apparatus-label">
+            <line x1="42" y1="20" x2="97" y2="16" stroke="#9a9384" stroke-width="1"/>
+            <text x="2" y="20">디지털 온도계</text>
+            <line x1="20" y1="115" x2="65" y2="125" stroke="#9a9384" stroke-width="1"/>
+            <text x="2" y="114">증류수</text>
+            <line x1="20" y1="178" x2="55" y2="172" stroke="#9a9384" stroke-width="1"/>
+            <text x="2" y="180">가열 장치</text>
+          </g>
+        </svg>
+      </div>
+      <div class="readout">
+        <div class="label">온도계 측정값</div>
+        <div class="value"><span id="boil-value">-</span><span class="unit">℃</span></div>
+        <div class="time" id="boil-time">측정 전</div>
+      </div>
+      <div class="controls">
+        <button class="btn-main" id="boil-btn" onclick="togglePlay('boil')">▶ 실험 시작</button>
+        <button class="btn-reset" onclick="resetExp('boil')" aria-label="다시 시작">↺</button>
+      </div>
+    </div>
+    <div class="log-card">
+      <div class="log-title"><span>측정 기록 (분)</span><span id="boil-progress">0 / 10</span></div>
+      <div class="log-grid" id="boil-log"></div>
+    </div>
+    <p class="hint">실험이 자동으로 진행되며 온도가 계속 변해요.<br>1분이 지날 때마다 표시된 값을 교과서 표에 옮겨 적어보자. 필요하면 일시정지할 수 있어요.</p>
+  </div>
+
+</div>
+
+<script>
+function switchExp(exp){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.exp===exp));
+  document.getElementById('tab-ice').style.display = exp==='ice' ? 'block':'none';
+  document.getElementById('tab-boil').style.display = exp==='boil' ? 'block':'none';
+}
+
+/* ---------- 온도 측정 시뮬레이션 (연속 재생) ---------- */
+const DATA = {
+  ice:  { arr: [-2.8,-1.8,-1.0,-0.5,-0.1,0,0,0,0,0.2], min:-5, max:5 },
+  boil: { arr: [32.3,40.9,48.2,56.4,64.9,77.1,82.0,88.2,100,100], min:0, max:110 }
+};
+const MS_PER_MIN = 4200;
+const state = {
+  ice:  { elapsed:0, playing:false, lastLogged:-1, rafId:null, lastTs:0 },
+  boil: { elapsed:0, playing:false, lastLogged:-1, rafId:null, lastTs:0 }
+};
+
+function buildLog(exp){
+  const grid = document.getElementById(exp+'-log');
+  grid.innerHTML = '';
+  DATA[exp].arr.forEach((v,i)=>{
+    const cell = document.createElement('div');
+    cell.className = 'log-cell';
+    cell.id = exp+'-cell-'+i;
+    cell.innerHTML = '<div class="lt">'+i+'분</div><div class="lv"></div>';
+    grid.appendChild(cell);
+  });
+}
+buildLog('ice');
+buildLog('boil');
+
+function lerp(a,b,t){ return a + (b-a)*t; }
+
+function valueAtElapsed(exp, elapsed){
+  const arr = DATA[exp].arr;
+  const last = arr.length - 1;
+  const clamped = Math.max(0, Math.min(last, elapsed));
+  const i0 = Math.floor(clamped);
+  const i1 = Math.min(last, i0+1);
+  const frac = clamped - i0;
+  return lerp(arr[i0], arr[i1], frac);
+}
+
+function updateVisual(exp, elapsed, v){
+  document.getElementById(exp+'-value').textContent = v.toFixed(1);
+  document.getElementById(exp+'-digital-num').textContent = v.toFixed(1);
+  const wholeMin = Math.floor(elapsed);
+  const secPart = Math.round((elapsed - wholeMin) * 60);
+  document.getElementById(exp+'-time').textContent = wholeMin + '분 ' + (secPart<10?'0':'') + secPart + '초';
+
+  if(exp === 'ice'){
+    const meltIndex = DATA.ice.arr.findIndex(t => t >= 0);
+    const shrink = Math.max(0, 1 - elapsed/meltIndex);
+    const cube = document.getElementById('ice-cube');
+    cube.setAttribute('transform', 'translate(85,'+ (148-16*shrink) +') scale('+ (0.15+0.85*shrink) +')');
+    cube.style.opacity = shrink <= 0.02 ? 0 : 1;
+
+    // 얼음이 녹을수록(shrink가 작아질수록) 플라스크 안 물이 점점 많아짐
+    const meltedFrac = 1 - shrink;
+    const water = document.getElementById('ice-water');
+    water.setAttribute('y', 148 - meltedFrac*82);
+    water.setAttribute('height', 6 + meltedFrac*82);
+  } else {
+    document.getElementById('boil-steam').style.opacity = v >= 95 ? 1 : 0;
+
+    // 가열 장치 발열판 glow + 표시등
+    document.getElementById('heater-glow').style.opacity = Math.min(0.9, v/85);
+    document.getElementById('heater-led').setAttribute('fill', v > 0 ? '#FF5A3D' : '#c9c2b3');
+
+    // 보글보글 기포: 온도가 높을수록 더 많고 크게, 매 프레임 갱신
+    const bubblesG = document.getElementById('bubbles');
+    const intensity = Math.max(0, Math.round((v/100) * 18));
+    bubblesG.innerHTML = '';
+    for(let i=0;i<intensity;i++){
+      const cx = 42 + Math.random()*72;
+      const cy = 100 + Math.random()*68;
+      const big = v >= 90 && Math.random() < 0.35;
+      const r = big ? (4 + Math.random()*4) : (1.5 + Math.random()*3);
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r',r);
+      c.setAttribute('fill','#FFE8D6'); c.setAttribute('stroke','#FFB07A'); c.setAttribute('stroke-width','0.6');
+      c.setAttribute('opacity', (0.7 + Math.random()*0.3).toFixed(2));
+      bubblesG.appendChild(c);
+    }
+
+    // 물이 끓기 시작하면(마지막 구간) 수위가 눈에 띄게 낮아짐
+    const boilStartIdx = DATA.boil.arr.findIndex(t => t >= 100);
+    const lastIdx = DATA.boil.arr.length - 1;
+    const water = document.getElementById('boil-water');
+    if(boilStartIdx > -1 && elapsed >= boilStartIdx && lastIdx > boilStartIdx){
+      const t = Math.min(1, (elapsed - boilStartIdx) / (lastIdx - boilStartIdx));
+      const shrinkPx = t * 32;
+      water.setAttribute('y', 98 + shrinkPx);
+      water.setAttribute('height', 75 - shrinkPx);
+    } else {
+      water.setAttribute('y', 98);
+      water.setAttribute('height', 75);
+    }
+  }
+}
+
+function logIfCrossed(exp, elapsed){
+  const s = state[exp];
+  const flooredMin = Math.floor(elapsed + 0.0005);
+  if(flooredMin > s.lastLogged && flooredMin < DATA[exp].arr.length){
+    for(let i=s.lastLogged+1; i<=flooredMin; i++){
+      const v = DATA[exp].arr[i];
+      const cell = document.getElementById(exp+'-cell-'+i);
+      cell.classList.add('filled','flash');
+      cell.querySelector('.lv').textContent = v.toFixed(1);
+      setTimeout(()=>cell.classList.remove('flash'), 500);
+    }
+    s.lastLogged = flooredMin;
+    document.getElementById(exp+'-progress').textContent = (flooredMin+1)+' / '+DATA[exp].arr.length;
+  }
+}
+
+function tick(exp, ts){
+  const s = state[exp];
+  if(!s.playing) return;
+  if(!s.lastTs) s.lastTs = ts;
+  const dt = ts - s.lastTs;
+  s.lastTs = ts;
+  s.elapsed += dt / MS_PER_MIN;
+  const last = DATA[exp].arr.length - 1;
+
+  if(s.elapsed >= last){
+    s.elapsed = last;
+    updateVisual(exp, s.elapsed, DATA[exp].arr[last]);
+    logIfCrossed(exp, s.elapsed);
+    stopPlaying(exp, true);
+    return;
+  }
+  const v = valueAtElapsed(exp, s.elapsed);
+  updateVisual(exp, s.elapsed, v);
+  logIfCrossed(exp, s.elapsed);
+  s.rafId = requestAnimationFrame((t)=>tick(exp, t));
+}
+
+function stopPlaying(exp, finished){
+  const s = state[exp];
+  s.playing = false;
+  if(s.rafId) cancelAnimationFrame(s.rafId);
+  s.rafId = null;
+  s.lastTs = 0;
+  const btn = document.getElementById(exp+'-btn');
+  if(finished){ btn.textContent = '측정 완료'; btn.disabled = true; }
+  else { btn.textContent = '▶ 계속 진행'; btn.disabled = false; }
+}
+
+function togglePlay(exp){
+  const s = state[exp];
+  const btn = document.getElementById(exp+'-btn');
+  if(s.playing){
+    stopPlaying(exp, false);
+    btn.textContent = '▶ 계속 진행';
+  } else {
+    s.playing = true;
+    s.lastTs = 0;
+    btn.textContent = '⏸ 일시정지';
+    s.rafId = requestAnimationFrame((t)=>tick(exp, t));
+  }
+}
+
+function resetExp(exp){
+  const s = state[exp];
+  s.playing = false;
+  if(s.rafId) cancelAnimationFrame(s.rafId);
+  s.rafId = null; s.lastTs = 0; s.elapsed = 0; s.lastLogged = -1;
+
+  buildLog(exp);
+  document.getElementById(exp+'-value').textContent = '-';
+  document.getElementById(exp+'-time').textContent = '측정 전';
+  document.getElementById(exp+'-digital-num').textContent = '0.0';
+  document.getElementById(exp+'-progress').textContent = '0 / '+DATA[exp].arr.length;
+  const btn = document.getElementById(exp+'-btn');
+  btn.disabled = false;
+  btn.textContent = '▶ 실험 시작';
+  if(exp === 'ice'){
+    document.getElementById('ice-cube').setAttribute('transform','translate(85,132)');
+    document.getElementById('ice-cube').style.opacity = 1;
+    document.getElementById('ice-water').setAttribute('y', 148);
+    document.getElementById('ice-water').setAttribute('height', 6);
+  } else {
+    document.getElementById('bubbles').innerHTML = '';
+    document.getElementById('boil-steam').style.opacity = 0;
+    document.getElementById('heater-glow').style.opacity = 0;
+    document.getElementById('heater-led').setAttribute('fill', '#c9c2b3');
+    document.getElementById('boil-water').setAttribute('y', 98);
+    document.getElementById('boil-water').setAttribute('height', 75);
+  }
+}
+</script>
+</body>
+</html>
